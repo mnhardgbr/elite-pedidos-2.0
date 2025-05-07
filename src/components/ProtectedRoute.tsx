@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     const authToken = localStorage.getItem('authToken');
     
     // Lista de rotas públicas que não precisam de autenticação
-    const publicRoutes = ['/login'];
+    const publicRoutes = ['/login', '/cliente/cadastro'];
     
     if (!authToken && !publicRoutes.includes(pathname)) {
       // Se não houver token e a rota não for pública, redireciona para o login
