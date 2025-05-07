@@ -1,0 +1,392 @@
+'use client';
+
+import Link from "next/link";
+import Image from "next/image";
+import { useState, useEffect } from "react";
+
+// ... (todas as interfaces permanecem as mesmas)
+
+export default function Caixa() {
+  // ... (todos os estados e funções permanecem os mesmos)
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-[1400px] mx-auto px-4">
+          <div className="h-16 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                width={40}
+                height={40}
+                className="rounded"
+              />
+              <span className="text-xl font-bold text-gray-800">Elite Pedidos</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link href="/mesas" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Mesas
+              </Link>
+              <Link href="/fechamento-caixa" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Fechamento de Caixa
+              </Link>
+              <Link href="/controle-financeiro" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Controle Financeiro
+              </Link>
+              <Link href="/sair" className="text-red-500 hover:text-red-700">
+                Sair
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Conteúdo Principal */}
+      <div className="max-w-[1400px] mx-auto p-4">
+        <div className="grid grid-cols-[1fr_1fr_1fr] gap-4">
+          {/* Coluna da Esquerda - Produtos */}
+          <div className="bg-white rounded-lg p-4">
+            <h2 className="text-lg font-semibold mb-4">Produtos</h2>
+            
+            {/* Barra de Busca */}
+            <div className="flex gap-3 mb-4">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="Digite o código, código de barras ou nome do produto..."
+                  value={termoBusca}
+                  onChange={handleSearchInput}
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                />
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <button
+                onClick={() => setProdutoAvulsoModal({ ...produtoAvulsoModal, isOpen: true })}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 whitespace-nowrap"
+              >
+                + Avulso
+              </button>
+            </div>
+
+            {/* Categorias */}
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+              {categorias.map(categoria => (
+                <button
+                  key={categoria}
+                  onClick={() => setCategoriaSelecionada(categoria)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
+                    categoriaSelecionada === categoria
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {categoria}
+                </button>
+              ))}
+            </div>
+
+            {/* Lista de Produtos */}
+            <div className="overflow-y-auto" style={{ height: 'calc(100vh - 250px)' }}>
+              {renderizarProdutos()}
+            </div>
+          </div>
+
+          {/* Coluna do Meio - Pedido Atual */}
+          <div className="bg-white rounded-lg p-4">
+            <h2 className="text-lg font-semibold mb-4">Pedido Atual</h2>
+            
+            {pedidoAtual.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">
+                Nenhum item no pedido
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {/* Lista de Itens */}
+                <div className="space-y-3 overflow-y-auto" style={{ height: 'calc(100vh - 400px)' }}>
+                  {pedidoAtual.map(item => (
+                    <div key={item.produto.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                      <div>
+                        <h3 className="font-medium">{item.produto.nome}</h3>
+                        <p className="text-sm text-gray-500">
+                          {item.produto.tipovenda === 'kg' ? (
+                            <>
+                              {item.produto.peso}g x {item.quantidade} = R$ {(item.produto.preco * item.quantidade).toFixed(2)}
+                            </>
+                          ) : (
+                            <>
+                              R$ {item.produto.preco.toFixed(2)} x {item.quantidade} = R$ {(item.produto.preco * item.quantidade).toFixed(2)}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => atualizarQuantidade(item.produto.id, item.quantidade - 1)}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center">{item.quantidade}</span>
+                        <button
+                          onClick={() => atualizarQuantidade(item.produto.id, item.quantidade + 1)}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Total e Forma de Pagamento */}
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center text-lg font-medium mb-4">
+                    <span>Total</span>
+                    <span className="text-blue-600">R$ {calcularTotal().toFixed(2)}</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-sm">Forma de Pagamento</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        'Dinheiro',
+                        'PIX',
+                        'Cartão de Débito',
+                        'Cartão de Crédito'
+                      ].map((forma) => (
+                        <button
+                          key={forma}
+                          onClick={() => setFormaPagamento(forma)}
+                          className={`p-2 rounded text-sm ${
+                            formaPagamento === forma
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {forma}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Observações */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Observações
+                    </label>
+                    <textarea
+                      className="w-full p-2 border rounded-lg"
+                      rows={3}
+                      placeholder="Ex: Sem cebola, bem passado..."
+                    />
+                  </div>
+
+                  {/* Botão Finalizar */}
+                  <button
+                    onClick={finalizarPedido}
+                    disabled={pedidoAtual.length === 0 || !formaPagamento}
+                    className="w-full mt-4 bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    Finalizar Pedido
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Coluna da Direita - Histórico de Vendas */}
+          <div className="bg-white rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Histórico de Vendas</h2>
+              <span className="text-sm text-blue-500">Administrador</span>
+            </div>
+            <div className="space-y-3 overflow-y-auto" style={{ height: 'calc(100vh - 250px)' }}>
+              {vendas.slice(0, 10).map(venda => (
+                <div key={venda.id} className="border-b pb-3 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">#{venda.id}</span>
+                        <span className="text-sm text-gray-500">
+                          {new Date(venda.data).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        {venda.itens.map(item => (
+                          <div key={item.produto.id}>
+                            {item.quantidade}x {item.produto.nome}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        venda.status === 'CONCLUIDO' 
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {venda.status}
+                      </span>
+                      <div className="mt-1 font-medium">
+                        R$ {venda.total.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                  {venda.status === 'CONCLUIDO' && (
+                    <button
+                      onClick={() => cancelarVenda(venda.id)}
+                      className="text-red-600 text-sm hover:text-red-700"
+                    >
+                      Cancelar Venda
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal de Produto Avulso */}
+      {produtoAvulsoModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-[400px]">
+            <h3 className="text-lg font-medium mb-4">Adicionar Produto Avulso</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome do Produto
+                </label>
+                <input
+                  type="text"
+                  value={produtoAvulsoModal.nome}
+                  onChange={(e) => setProdutoAvulsoModal({
+                    ...produtoAvulsoModal,
+                    nome: e.target.value
+                  })}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Preço
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={produtoAvulsoModal.preco}
+                  onChange={(e) => setProdutoAvulsoModal({
+                    ...produtoAvulsoModal,
+                    preco: parseFloat(e.target.value)
+                  })}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setProdutoAvulsoModal({
+                    isOpen: false,
+                    nome: '',
+                    preco: 0
+                  })}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={adicionarProdutoAvulso}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                >
+                  Adicionar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Peso */}
+      {pesoModal.isOpen && pesoModal.produto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-[400px]">
+            <h3 className="text-lg font-medium mb-4">
+              Informar peso - {pesoModal.produto.nome}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Peso em gramas
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={pesoModal.peso || ''}
+                    onChange={(e) => setPesoModal({
+                      ...pesoModal,
+                      peso: parseFloat(e.target.value) || 0
+                    })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && pesoModal.peso > 0) {
+                        e.preventDefault();
+                        adicionarProdutoComPeso();
+                      } else if (e.key === 'Escape') {
+                        setPesoModal({
+                          isOpen: false,
+                          produto: null,
+                          peso: 0
+                        });
+                      }
+                    }}
+                    autoFocus
+                    className="flex-1 p-2 border rounded-lg"
+                    placeholder="Ex: 250"
+                  />
+                  <span className="text-gray-500">g</span>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Valor: R$ {((pesoModal.peso / 1000) * pesoModal.produto.preco).toFixed(2)}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Pressione Enter para adicionar ou Esc para cancelar
+                </p>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setPesoModal({
+                    isOpen: false,
+                    produto: null,
+                    peso: 0
+                  })}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={adicionarProdutoComPeso}
+                  disabled={pesoModal.peso <= 0}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Adicionar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+} 
